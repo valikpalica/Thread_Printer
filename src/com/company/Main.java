@@ -36,8 +36,8 @@ class Printer implements Runnable{
     @Override
     public void run() {
         try {
-            for (int i=0;i<10;i++){
-               TimeUnit.SECONDS.sleep(1);
+            while (true){
+                TimeUnit.SECONDS.sleep(1);
                 _service.push_printer();
             }
         } catch (InterruptedException e) {
@@ -48,7 +48,7 @@ class Printer implements Runnable{
 class Service{
     private List<Client> clientList = new ArrayList<>();
     synchronized public void pull_client (Client client) throws InterruptedException {
-        if(clientList.size()>=5){
+        while (clientList.size()>=5){
             wait();
         }
         clientList.add(client);
@@ -56,7 +56,7 @@ class Service{
         notifyAll();
     }
     synchronized public void push_printer() throws InterruptedException {
-        if(clientList.size()<1){
+        while (clientList.size()<1){
             wait();
         }
         Client client  = clientList.remove(0);
