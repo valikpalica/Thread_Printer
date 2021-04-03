@@ -78,7 +78,7 @@ class Client implements Runnable{
     public void run() {
         try {
             for (int i=0;i<10;i++) {
-                Thread.sleep(200);
+                TimeUnit.SECONDS.sleep(1);
                 _service.pull_client(this);
             }
         } catch (InterruptedException e) {
