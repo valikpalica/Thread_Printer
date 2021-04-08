@@ -1,5 +1,4 @@
 package com.company;
-
 import java.rmi.server.ServerCloneException;
 import java.sql.Time;
 import java.util.ArrayList;
@@ -10,12 +9,20 @@ import java.util.stream.Stream;
 public class Main {
 
     public static void main(String[] args) throws InterruptedException {
+        int size_tasks = 10;
+        List<String> arrayList = new ArrayList<>();
+        for (int i=0;i<size_tasks;i++){
+            arrayList.add("doc"+i);
+        }
         Service service = new Service();
         Printer printer1 = new Printer(service);
         Printer printer2 = new Printer(service);
         Client client1 = new Client(service,"client1");
+        client1.push_tasks((ArrayList<String>) arrayList,false);
         Client client2 = new Client(service,"client2");
+        client2.push_tasks((ArrayList<String>) arrayList,true);
         Client client3 = new Client(service,"client3");
+        client3.push_tasks((ArrayList<String>) arrayList,false);
         Thread thread_client_1 = new Thread(client1);
         Thread thread_client_2 = new Thread(client2);
         Thread thread_client_3 = new Thread(client3);
@@ -45,42 +52,61 @@ class Printer implements Runnable{
         }
     }
 }
+
+class Task {
+    private String task;
+    private String name_owner;
+    Task(String task,String name_owner){
+        this.task = task;
+        this.name_owner = name_owner;
+    }
+    public String getName(){
+        return this.name_owner;
+    }
+    public String getTask(){
+        return this.task;
+    }
+}
+
+
 class Service{
-    private List<Client> clientList = new ArrayList<>();
-    synchronized public void pull_client (Client client) throws InterruptedException {
-        while (clientList.size()>=5){
-            wait();
+    private List<Task> tasks = new ArrayList<>();
+    synchronized public void pull_client (List<String> task,boolean prioritet,String name) throws InterruptedException {
+        for (int i=0;i<task.size();i++){
+            if(!prioritet&i%3==0){
+                wait();
+            }
+            tasks.add(new Task(task.get(i),name));
         }
-        clientList.add(client);
-        System.out.println(client.getName() + " add in query");
         notifyAll();
     }
     synchronized public void push_printer() throws InterruptedException {
-        while (clientList.size()<1){
+        if(tasks.size()<=0){
             wait();
         }
-        Client client  = clientList.remove(0);
-        System.out.println(client.getName()+" printed " + Thread.currentThread().getName());
+        Task task = tasks.remove(0);
         notifyAll();
+        System.out.println(task.getTask()+" printed "+ Thread.currentThread().getName()+" : owner "+task.getName());
     }
 }
 class Client implements Runnable{
-    private Service _service;
-    private String name ;
+    private Service service;
+    private String name;
+    private boolean prioritet;
+    private List<String> listTasks;
     Client(Service service, String name){
-        _service = service;
+        this.service = service;
         this.name = name;
     }
-    public String getName () {
-        return this.name;
+    public void push_tasks(ArrayList<String> task,boolean prioritet){
+        this.prioritet = prioritet;
+        listTasks = task;
     }
     @Override
     public void run() {
         try {
-            for (int i=0;i<10;i++) {
                 TimeUnit.SECONDS.sleep(1);
-                _service.pull_client(this);
-            }
+                service.pull_client(listTasks,prioritet,name);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
